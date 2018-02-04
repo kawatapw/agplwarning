@@ -1,9 +1,11 @@
 package agplwarning
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/user"
+	"strings"
 )
 
 var pages = [...]string{
@@ -54,13 +56,23 @@ func Warn(namespace, projectName string) error {
 	if _, err := os.Stat(agreedFilename); !os.IsNotExist(err) {
 		return err
 	}
+	reader := bufio.NewReader(os.Stdin)
 	// file does not exist. Show warning.
 	fmt.Printf("    %s, and most/all software related to %s,\n"+
 		"is licensed under the GNU Affero General Public License.\n\n", projectName, namespace)
 	for _, page := range pages {
 		fmt.Println("    " + page)
 		fmt.Println("\nPress Enter to continue")
-		fmt.Scanln()
+		_, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Println("Please write 'I agree' to accept the terms of the license.")
+	res, err := reader.ReadString('\n')
+	if err != nil || !strings.Contains(strings.ToLower(res), "i agree") {
+		fmt.Println("License not agreed. Quitting.")
+		os.Exit(1)
 	}
 	f, err := os.Create(agreedFilename)
 	if err != nil {
